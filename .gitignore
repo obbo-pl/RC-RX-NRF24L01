@@ -30,3 +30,24 @@
 *.exe
 *.out
 *.app
+
+# KiCAD backup
+*.bak
+*.bck
+*.kicad_pcb-bak
+*.sch-bak
+_saved_*
+
+# Netlists
+*.net
+
+# cache
+fp-info-cache
+
+# Atmel Studio 6.2 User-specific files
+*.atsuo
+
+# Atmel Studio 6.2 Build results
+[Dd]ebug/
+
+
