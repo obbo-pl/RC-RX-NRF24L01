@@ -256,7 +256,7 @@ int main(void)
 				servos.setValues(servo_channels_value);				
 				servos.enablePulses(enable_servo_pulses);
 				if (service_mode) {
-					if (!READ_PIN(CONFIG_BIND_BUTTON)) failsafe.seveValues(servo_channels_value);					
+					if (!READ_PIN(CONFIG_BIND_BUTTON)) failsafe.saveValues(servo_channels_value);					
 				}
 				main_phase++;
 				break;
@@ -280,15 +280,15 @@ int main(void)
 					}
 					if (testbit(protocol.cabell.state.request, CABELL_STATE_REQUEST_FAILSAFE_NO_PULSES)) {
 						clrbit(protocol.cabell.state.request, CABELL_STATE_REQUEST_FAILSAFE_NO_PULSES);
-						failsafe.setNoPulses();
+						failsafe.saveModePulses(false);
 					}
 					if (testbit(protocol.cabell.state.request, CABELL_STATE_REQUEST_FAILSAFE_ERASE)) {
 						clrbit(protocol.cabell.state.request, CABELL_STATE_REQUEST_FAILSAFE_ERASE);
-						failsafe.setErasedValues();
+						failsafe.eraseValues();
 					}
 					if (testbit(protocol.cabell.state.request, CABELL_STATE_REQUEST_FAILSAFE_SAVE)) {
 						clrbit(protocol.cabell.state.request, CABELL_STATE_REQUEST_FAILSAFE_SAVE);
-						failsafe.seveValues(servo_channels_value);
+						failsafe.saveValues(servo_channels_value);
 					}
 				} else failsafe.setConfigurationEnabled();
 				if (service_mode) {

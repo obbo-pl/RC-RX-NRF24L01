@@ -15,13 +15,20 @@
 #include "macro.h"
 
 
-uint16_t EEMEM eeprom_failsafe_values[FAILSAFE_MAX_CHANNELS];
 #define FAILSAFE_CHANNEL_ERASED_VALUE		0xFFFF
+#define FAILSAFE_NO_PULSES			0x00
+#define FAILSAFE_PULSES				0xFF
+
+uint16_t EEMEM eeprom_failsafe_values[FAILSAFE_MAX_CHANNELS];
+uint8_t EEMEM eeprom_failsafe_mode_pulses = FAILSAFE_PULSES;
+
 
 
 Failsafe::Failsafe()
 {
-	this->state = (uint8_t)(1 << FAILSAFE_STATE_FAILSAFE_CONFIGURE_ENABLED);
+	this->uptime = NULL;
+	this->state = (uint8_t)(1 << FAILSAFE_STATE_CONFIGURE_ENABLED);
+	readModePulses();
 }
 
 void Failsafe::init(UpTime *uptime)
@@ -40,15 +47,16 @@ void Failsafe::setDefaultValues(void)
 	for (uint8_t i = 0; i < FAILSAFE_MAX_CHANNELS; i++) {
 		this->setValue(i, FAILSAFE_CHANNEL_MID_VALUE);
 	}
-	seveValues();
+	saveValues();
 }
 
-void Failsafe::setErasedValues(void)
+void Failsafe::eraseValues(void)
 {
 	for (uint8_t i = 0; i < FAILSAFE_MAX_CHANNELS; i++) {
 		this->setValue(i, FAILSAFE_CHANNEL_ERASED_VALUE);
 	}
-	seveValues();
+	saveValues();
+	saveModePulses(true);
 }
 
 void Failsafe::loadValues(void)
@@ -58,10 +66,21 @@ void Failsafe::loadValues(void)
 	}
 }
 
-void Failsafe::seveValues(void)
+void Failsafe::saveValues(void)
 {
 	for (uint8_t i = 0; i < FAILSAFE_MAX_CHANNELS; i++) {
 		eeprom_write_word(&eeprom_failsafe_values[i], this->servo_channels[i]);
+	}
+}
+
+void Failsafe::saveValues(uint16_t *values)
+{
+	if (testbit(this->state, FAILSAFE_STATE_CONFIGURE_ENABLED)) {
+		for (uint8_t i = 0; i < FAILSAFE_MAX_CHANNELS; i++) {
+			this->setValue(i, values[i]);
+		}
+		this->saveValues();
+		clrbit(this->state, FAILSAFE_STATE_CONFIGURE_ENABLED);
 	}
 }
 
@@ -74,37 +93,54 @@ void Failsafe::setValue(uint8_t channel, uint16_t val)
 
 void Failsafe::setConfigurationEnabled(void)
 {
-	setbit(this->state, FAILSAFE_STATE_FAILSAFE_CONFIGURE_ENABLED);
+	setbit(this->state, FAILSAFE_STATE_CONFIGURE_ENABLED);
 }
 
-void Failsafe::setNoPulses(void)
+void Failsafe::saveModePulses(void)
 {
-	setbit(this->state, FAILSAFE_STATE_FAILSAFE_NO_PULSES);
+	if (testbit(this->state, FAILSAFE_STATE_MODE_PULSES)) {
+		eeprom_write_byte(&eeprom_failsafe_mode_pulses, FAILSAFE_PULSES);
+	} else {
+		eeprom_write_byte(&eeprom_failsafe_mode_pulses, FAILSAFE_NO_PULSES);
+	}
 }
 
-void Failsafe::seveValues(uint16_t *values)
+void Failsafe::saveModePulses(bool pulses)
 {
-	if (testbit(this->state, FAILSAFE_STATE_FAILSAFE_CONFIGURE_ENABLED)) {
-		for (uint8_t i = 0; i < FAILSAFE_MAX_CHANNELS; i++) {
-			this->setValue(i, values[i]);
-		}
-		this->seveValues();
-		clrbit(this->state, FAILSAFE_STATE_FAILSAFE_CONFIGURE_ENABLED);
+	if (pulses) {
+		setbit(this->state, FAILSAFE_STATE_MODE_PULSES);
+	} else {
+		clrbit(this->state, FAILSAFE_STATE_MODE_PULSES);
+	}
+	saveModePulses();
+}
+
+void Failsafe::readModePulses(void)
+{
+	if (eeprom_read_byte(&eeprom_failsafe_mode_pulses) == FAILSAFE_PULSES) {
+		setbit(this->state, FAILSAFE_STATE_MODE_PULSES);
+	} else {
+		clrbit(this->state, FAILSAFE_STATE_MODE_PULSES);
 	}
 }
 
 void Failsafe::check(uint16_t *channels_value, bool *enable_pulses, uint32_t last_good_packet, bool initial_packet)
 {
-	if (((this->uptime->getTime() - last_good_packet) > (uint32_t)FAILSAFE_CONNECTION_TIMEOUT) || !(initial_packet)) {
-		setbit(this->state, FAILSAFE_STATE_FAILSAFE_MODE);
-		if (testbit(this->state, FAILSAFE_STATE_FAILSAFE_NO_PULSES)) *enable_pulses = false;
-		else *enable_pulses = true;
-		for (uint8_t i = 0; i < FAILSAFE_MAX_CHANNELS; i++) {
-			channels_value[i] = this->servo_channels[i];
+	if (this->uptime) {
+		if (((this->uptime->getTime() - last_good_packet) > (uint32_t)FAILSAFE_CONNECTION_TIMEOUT) || !(initial_packet)) {
+			setbit(this->state, FAILSAFE_STATE_FAILSAFE_MODE);
+			if (testbit(this->state, FAILSAFE_STATE_MODE_PULSES)) {
+				*enable_pulses = true;
+			} else {
+				*enable_pulses = false;
+			}
+			for (uint8_t i = 0; i < FAILSAFE_MAX_CHANNELS; i++) {
+				channels_value[i] = this->servo_channels[i];
+			}
+		} else {
+			clrbit(this->state, FAILSAFE_STATE_FAILSAFE_MODE);
+			*enable_pulses = true;
 		}
-	} else {
-		clrbit(this->state, FAILSAFE_STATE_FAILSAFE_MODE);
-		*enable_pulses = true;
 	}
 }
 

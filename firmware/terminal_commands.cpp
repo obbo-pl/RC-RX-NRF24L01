@@ -328,7 +328,7 @@ void command_RadioFailsafeStatus(DCTERMINAL_t *terminal)
 void command_RadioSetFailsafe(DCTERMINAL_t *terminal)
 {
 	receiver_failsafe->setConfigurationEnabled();
-	receiver_failsafe->seveValues(receiver_servo_channels);
+	receiver_failsafe->saveValues(receiver_servo_channels);
 	terminal_SendOK(terminal->output_buffer);
 }
 
