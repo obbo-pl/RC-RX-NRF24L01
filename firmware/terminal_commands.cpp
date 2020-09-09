@@ -32,6 +32,7 @@ void command_RadioSetFailsafe(DCTERMINAL_t *terminal);
 void command_RadioServoValue(DCTERMINAL_t *terminal);
 void command_RadioFailsafeValue(DCTERMINAL_t *terminal);
 void command_ThrottleDisarmValue(DCTERMINAL_t *terminal);
+void command_RadioBindModel(DCTERMINAL_t *terminal);
 #ifdef TERMINAL_CABELL_FULL_STATISTICS
 void command_RadioCountSequential(DCTERMINAL_t *terminal);
 void command_RadioCurrentChannel(DCTERMINAL_t *terminal);
@@ -47,7 +48,7 @@ void command_RadioNRF24L01PipeAddress(DCTERMINAL_t *terminal);
 void command_RadioNRF24L01PipePayload(DCTERMINAL_t *terminal);
 #endif
 
-#define TERMINAL_BASE_COMMANDS_COUNT		14
+#define TERMINAL_BASE_COMMANDS_COUNT		15
 #ifdef TERMINAL_CABELL_FULL_STATISTICS
 #define TERMINAL_STATISTICS_COMMANDS_COUNT	5
 #else
@@ -63,20 +64,21 @@ void command_RadioNRF24L01PipePayload(DCTERMINAL_t *terminal);
 						 TERMINAL_RADIO_COMMANDS_COUNT)
 
 TERMINAL_COMMAND_t cabell_commands[TERMINAL_COMMANDS_COUNT] = {
-	{ .pattern = "@VER", .callback = command_SystemVersion,},
-	{ .pattern = "@BVV", .callback = command_BatteryVoltageValue,},
 	{ .pattern = "@BVD", .callback = command_BatteryVoltageDivider,},
-	{ .pattern = "@RPD", .callback = command_RadioPowerDetector,},
-	{ .pattern = "@RPC", .callback = command_RadioPacketsCount,},
-	{ .pattern = "@RER", .callback = command_RadioErrorsStatus,},
+	{ .pattern = "@BVV", .callback = command_BatteryVoltageValue,},
+	{ .pattern = "@RBM", .callback = command_RadioBindModel,},
 	{ .pattern = "@REC", .callback = command_RadioErrorsClear,},
-	{ .pattern = "@RUB", .callback = command_RadioUnBind,},
-	{ .pattern = "@RSS", .callback = command_RadioProtocolStatus,},
+	{ .pattern = "@RER", .callback = command_RadioErrorsStatus,},
 	{ .pattern = "@RFS", .callback = command_RadioFailsafeStatus,},
-	{ .pattern = "@RSV", .callback = command_RadioServoValue,},
 	{ .pattern = "@RFV", .callback = command_RadioFailsafeValue,},
+	{ .pattern = "@RPC", .callback = command_RadioPacketsCount,},
+	{ .pattern = "@RPD", .callback = command_RadioPowerDetector,},
 	{ .pattern = "@RSF", .callback = command_RadioSetFailsafe,},
+	{ .pattern = "@RSS", .callback = command_RadioProtocolStatus,},
+	{ .pattern = "@RSV", .callback = command_RadioServoValue,},
+	{ .pattern = "@RUB", .callback = command_RadioUnBind,},
 	{ .pattern = "@TDV", .callback = command_ThrottleDisarmValue,},
+	{ .pattern = "@VER", .callback = command_SystemVersion,},
 #ifdef TERMINAL_CABELL_FULL_STATISTICS
 	{ .pattern = "@RCS", .callback = command_RadioCountSequential,},
 	{ .pattern = "@RCC", .callback = command_RadioCurrentChannel,},
@@ -285,6 +287,23 @@ void command_RadioErrorsClear(DCTERMINAL_t *terminal)
 {
 	receiver_protocol->cabell.state.errors = 0x00;
 	terminal_SendOK(terminal->output_buffer);
+}
+
+void command_RadioBindModel(DCTERMINAL_t *terminal)
+{
+	if (terminal->command_option[0] == TERMINAL_SPACE) {
+		int temp = atoi(terminal->command_option);
+		if ((temp >= 0) && (temp < 255)) {
+			receiver_protocol->saveModel(temp);
+		} else {
+			terminal_SendBadArgument(terminal->output_buffer);
+		}
+	}
+	cbuffer_AppendString(terminal->output_buffer, "Saved model: ");
+	char buffer [4];
+	itoa(receiver_protocol->cabell.current_model, buffer, 10);
+	cbuffer_AppendString(terminal->output_buffer, buffer);
+	terminal_SendNL(terminal->output_buffer);
 }
 
 void command_RadioUnBind(DCTERMINAL_t *terminal)

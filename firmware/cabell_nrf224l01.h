@@ -165,6 +165,7 @@ class CABELL
 		void unbindReciever(void);
 		void getState(uint8_t *protocol, uint8_t *errors);
 		void setTelemetryFrame(uint8_t lipo1, uint8_t lipo2);
+		void saveModel(uint8_t model);
 
 	private:
 		// Note bit 8 is used to indicate if the packet is the first of 2 on the channel. 

@@ -438,7 +438,7 @@ void CABELL::bindReciever(uint8_t mode, uint8_t model, uint16_t *channels_value)
 				 (((uint64_t)(channels_value[14] - 1000)) << 8)  +
 				 (((uint64_t)(channels_value[15] - 1000)));
 	
-	eeprom_write_byte(&eeprom_current_model, model);
+	saveModel(model);
 	eeprom_write_block(&new_radio_id, &eeprom_radio_pipe_address, 8);
 	if (mode == CABELL_RXMODE_bindFalesafeNoPulse) {
 		eeprom_write_byte(&eeprom_soft_bind_flag, (uint8_t)CABELL_FAILSAFE_NO_PULSES);
@@ -457,6 +457,12 @@ void CABELL::bindReciever(uint8_t mode, uint8_t model, uint16_t *channels_value)
 		terminal_FlushOutBuffer(this->console);		
 	}
 	setbit(this->cabell.state.protocol, CABELL_STATE_REBOOT_PENDING);
+}
+
+void CABELL::saveModel(uint8_t model)
+{
+	eeprom_write_byte(&eeprom_current_model, model);
+	cabell.current_model = model;
 }
 
 bool CABELL::decodeChannelValues(CABELL_RxPacket_t *packet, uint8_t channels_count, uint16_t *channels_value)
