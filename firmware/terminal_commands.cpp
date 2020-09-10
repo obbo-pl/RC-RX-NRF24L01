@@ -12,12 +12,15 @@
 
 #include <stdlib.h>
 #include <avr/eeprom.h>
+#include <ctype.h>
 #include "terminal_commands.h"
 #include "macro.h"
 
 
 
 void ftoa(float f, char *buffer, uint8_t length);
+uint8_t hex2int(const char hex);
+
 void command_SystemVersion(DCTERMINAL_t *terminal);
 void command_BatteryVoltageValue(DCTERMINAL_t *terminal);
 void command_BatteryVoltageDivider(DCTERMINAL_t *terminal);
@@ -33,6 +36,7 @@ void command_RadioServoValue(DCTERMINAL_t *terminal);
 void command_RadioFailsafeValue(DCTERMINAL_t *terminal);
 void command_ThrottleDisarmValue(DCTERMINAL_t *terminal);
 void command_RadioBindModel(DCTERMINAL_t *terminal);
+void command_RadioBindAddress(DCTERMINAL_t *terminal);
 #ifdef TERMINAL_CABELL_FULL_STATISTICS
 void command_RadioCountSequential(DCTERMINAL_t *terminal);
 void command_RadioCurrentChannel(DCTERMINAL_t *terminal);
@@ -48,7 +52,7 @@ void command_RadioNRF24L01PipeAddress(DCTERMINAL_t *terminal);
 void command_RadioNRF24L01PipePayload(DCTERMINAL_t *terminal);
 #endif
 
-#define TERMINAL_BASE_COMMANDS_COUNT		15
+#define TERMINAL_BASE_COMMANDS_COUNT		16
 #ifdef TERMINAL_CABELL_FULL_STATISTICS
 #define TERMINAL_STATISTICS_COMMANDS_COUNT	5
 #else
@@ -66,6 +70,7 @@ void command_RadioNRF24L01PipePayload(DCTERMINAL_t *terminal);
 TERMINAL_COMMAND_t cabell_commands[TERMINAL_COMMANDS_COUNT] = {
 	{ .pattern = "@BVD", .callback = command_BatteryVoltageDivider,},
 	{ .pattern = "@BVV", .callback = command_BatteryVoltageValue,},
+	{ .pattern = "@RBA", .callback = command_RadioBindAddress,},
 	{ .pattern = "@RBM", .callback = command_RadioBindModel,},
 	{ .pattern = "@REC", .callback = command_RadioErrorsClear,},
 	{ .pattern = "@RER", .callback = command_RadioErrorsStatus,},
@@ -187,6 +192,14 @@ void ftoa(float f, char *buffer, uint8_t length)
 	itoa(minor, start, 10);
 }
 
+uint8_t hex2int(const char hex) {
+	uint8_t result = 0;
+	if (hex >= '0' && hex <= '9') result = hex - '0';
+	else if (hex >= 'a' && hex <='f') result = hex - 'a' + 10;
+	else if (hex >= 'A' && hex <='F') result = hex - 'A' + 10;
+	return result;
+}
+
 void command_SystemVersion(DCTERMINAL_t *terminal)
 {
 	cbuffer_AppendPMString(terminal->output_buffer, receiver_device_info);
@@ -214,7 +227,7 @@ void command_BatteryVoltageDivider(DCTERMINAL_t *terminal)
 		if ((temp > 0) && (temp <= 100)) {
 			*receiver_battery_divider = temp;
 			terminal->change_to_write = true;
-			} else {
+		} else {
 			terminal_SendBadArgument(terminal->output_buffer);
 		}
 	}
@@ -304,6 +317,40 @@ void command_RadioBindModel(DCTERMINAL_t *terminal)
 	itoa(receiver_protocol->cabell.current_model, buffer, 10);
 	cbuffer_AppendString(terminal->output_buffer, buffer);
 	terminal_SendNL(terminal->output_buffer);
+}
+
+void command_RadioBindAddress(DCTERMINAL_t *terminal)
+{
+	if (terminal->command_option[0] == TERMINAL_SPACE) {
+		bool is_hex = true;
+		uint16_t new_radio_address[16];
+		uint8_t address_start = 11;
+#if TERMINAL_OPTION_LENGTH < 12
+#error "The TERMINAL_OPTION_LENGTH should be 12 or more, radio address takes 10 characters"
+#endif
+		for (uint8_t i = 1; i < 11; i++) {
+			if (isxdigit(terminal->command_option[i])) {
+				if (i % 2) { 
+					new_radio_address[address_start] = 1000 + (hex2int(terminal->command_option[i]) << 4);
+				} else {
+					new_radio_address[address_start] += hex2int(terminal->command_option[i]);
+					address_start++;
+				}
+			} else {
+				is_hex = false;
+				break;
+			}
+		}
+		if (is_hex) {
+			receiver_protocol->bindReciever(receiver_protocol->cabell.current_model, new_radio_address);
+		} else {
+			terminal_SendBadArgument(terminal->output_buffer);
+		}
+	} else {
+		cbuffer_AppendString(terminal->output_buffer, "Rx pipe address: ");
+		terminal_PrintBuf(terminal->output_buffer, reinterpret_cast<const uint8_t *>(&receiver_protocol->cabell.radio_pipe_id), 5, false);
+		terminal_SendNL(terminal->output_buffer);
+	}
 }
 
 void command_RadioUnBind(DCTERMINAL_t *terminal)

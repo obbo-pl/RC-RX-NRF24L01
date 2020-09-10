@@ -56,7 +56,7 @@
 #define CABELL_CHANNEL_MID_VALUE		((CABELL_CHANNEL_MIN_VALUE + CABELL_CHANNEL_MAX_VALUE) / 2)
 
 #define CABELL_DO_NOT_BIND_ON_BOOT		0xAA
-#define CABELL_FAILSAFE_NO_PULSES		0x99
+#define CABELL_FAILSAFE_NO_PULSES		0x99				// for compatibility only
 #define CABELL_BIND_RADIO_ADDR			0xA4B7C123F7LL
 
 #define CABELL_MASK_MAX_POWER_OVERRIDE		0x40
@@ -166,6 +166,9 @@ class CABELL
 		void getState(uint8_t *protocol, uint8_t *errors);
 		void setTelemetryFrame(uint8_t lipo1, uint8_t lipo2);
 		void saveModel(uint8_t model);
+		void bindReciever(uint8_t model, uint16_t *channels_value);
+		void bindReciever(uint8_t mode, uint8_t model, uint16_t *channels_value);
+
 
 	private:
 		// Note bit 8 is used to indicate if the packet is the first of 2 on the channel. 
@@ -223,7 +226,6 @@ class CABELL
 		bool decodeChannelValues(CABELL_RxPacket_t *packet, uint8_t channels_count, uint16_t *channels_value);
 		void updateRxCouters(uint8_t rx_mode);
 		bool processRxMode (uint8_t rx_mode, uint8_t model_num, uint16_t *channels_value, uint8_t channels_count);
-		void bindReciever(uint8_t mode, uint8_t model, uint16_t *channels_value) ;
 		void setServoChannelsValue(uint16_t *channels_value, uint8_t channels_count);
 		void enableTelemetry(bool enable);
 		uint32_t sendTelemetry(void);

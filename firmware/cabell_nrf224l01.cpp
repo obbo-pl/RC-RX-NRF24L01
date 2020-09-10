@@ -328,8 +328,12 @@ bool CABELL::processPackets(uint32_t *telemetry_emit_time)
 		setTelemetryPowerMode(packet.option);
 		enableTelemetry(true);
 	} else enableTelemetry(false);	
-	
+
+#if CABELL_MAX_CHANNELS < 16
+#error "The maximum number of channels should be 16 or more, new radio address is in channels 11 to 15"
+#endif
 	uint16_t temp_rc_channels_value[CABELL_MAX_CHANNELS];
+	
 	uint8_t channel_reduction = packet.option & CABELL_CHANNEL_REDUCTION_MASK;
 	if (channel_reduction > CABELL_CHANNEL_REDUCTION_MAX) result = false;  
 	uint8_t max_payload_index = sizeof(packet.payload_value) - (((channel_reduction - (channel_reduction % 2)) / 2) * 3);  
@@ -431,20 +435,27 @@ void CABELL::unbindReciever(void)
 
 void CABELL::bindReciever(uint8_t mode, uint8_t model, uint16_t *channels_value) 
 {
-	// new radio address is in channels 11 to 15
-	uint64_t new_radio_id = (((uint64_t)(channels_value[11] - 1000)) << 32) +
-  		  	         (((uint64_t)(channels_value[12] - 1000)) << 24) +
-				 (((uint64_t)(channels_value[13] - 1000)) << 16) +
-				 (((uint64_t)(channels_value[14] - 1000)) << 8)  +
-				 (((uint64_t)(channels_value[15] - 1000)));
-	
-	saveModel(model);
-	eeprom_write_block(&new_radio_id, &eeprom_radio_pipe_address, 8);
 	if (mode == CABELL_RXMODE_bindFalesafeNoPulse) {
-		eeprom_write_byte(&eeprom_soft_bind_flag, (uint8_t)CABELL_FAILSAFE_NO_PULSES);
-	} else {
-		eeprom_write_byte(&eeprom_soft_bind_flag, (uint8_t)CABELL_DO_NOT_BIND_ON_BOOT);
+		setbit(this->cabell.state.request, CABELL_STATE_REQUEST_FAILSAFE_NO_PULSES);
 	}
+	bindReciever(model, channels_value);
+}
+
+void CABELL::bindReciever(uint8_t model, uint16_t *channels_value)
+{
+	// new radio address is in channels 11 to 15
+#if CONFIG_CHANNEL_MIN_VALUE > 1000
+#error "The minimum channel value should be 1000 or less, otherwise there may be a problem with the binding of the transmitter"
+#endif
+	uint64_t new_radio_id = (((uint64_t)(channels_value[11] - 1000)) << 32) +
+				(((uint64_t)(channels_value[12] - 1000)) << 24) +
+				(((uint64_t)(channels_value[13] - 1000)) << 16) +
+				(((uint64_t)(channels_value[14] - 1000)) << 8)  +
+				((uint64_t)(channels_value[15] - 1000));
+	
+	if (this->cabell.current_model != model) saveModel(model);
+	eeprom_write_block(&new_radio_id, &eeprom_radio_pipe_address, 8);
+	eeprom_write_byte(&eeprom_soft_bind_flag, (uint8_t)CABELL_DO_NOT_BIND_ON_BOOT);
 	setbit(this->cabell.state.request, CABELL_STATE_REQUEST_FAILSAFE_DEFAULT);
 	if (this->console) {
 		terminal_PrintEE(this->console, cabell_message_001, true);
@@ -454,7 +465,7 @@ void CABELL::bindReciever(uint8_t mode, uint8_t model, uint16_t *channels_value)
 		terminal_PrintBuf(this->console, reinterpret_cast<const uint8_t *>(&new_radio_id), 5, true);
 		terminal_PrintLn(this->console, "", true);
 		terminal_PrintEE(this->console, cabell_message_003, true);
-		terminal_FlushOutBuffer(this->console);		
+		terminal_FlushOutBuffer(this->console);
 	}
 	setbit(this->cabell.state.protocol, CABELL_STATE_REBOOT_PENDING);
 }
@@ -503,10 +514,6 @@ bool CABELL::validateChecksum(CABELL_RxPacket_t *packet, uint8_t max_index)
 bool CABELL::checkBindRequest(bool bind_button)
 {
 	uint8_t soft_bind_flag = eeprom_read_byte(&eeprom_soft_bind_flag);
-	if (soft_bind_flag == CABELL_FAILSAFE_NO_PULSES) {
-		soft_bind_flag = CABELL_DO_NOT_BIND_ON_BOOT;
-		setbit(this->cabell.state.request, CABELL_STATE_REQUEST_FAILSAFE_NO_PULSES);
-	}
 	if ((!bind_button) || (soft_bind_flag != CABELL_DO_NOT_BIND_ON_BOOT)) {
 		setbit(this->cabell.state.protocol, CABELL_STATE_BIND_MODE);
 		this->cabell.radio_pipe_id = CABELL_BIND_RADIO_ADDR;
