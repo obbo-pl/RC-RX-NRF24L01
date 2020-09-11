@@ -29,8 +29,8 @@
 
 
 enum FAILSAFE_STATE {
-	FAILSAFE_STATE_FAILSAFE_MODE,
-	FAILSAFE_STATE_MODE_PULSES,
+	FAILSAFE_STATE_ACTIVE,
+	FAILSAFE_STATE_PULSE_ENABLED,
 	FAILSAFE_STATE_CONFIGURE_ENABLED
 };
 
@@ -49,15 +49,16 @@ class Failsafe
 		void check(uint16_t *channels_value, bool *enable_pulses, uint32_t last_good_packet, bool initial_packet);
 		void setDefaultValues(void);
 		void eraseValues(void);
-		void saveModePulses(void);
-		void saveModePulses(bool pulses);
+		void savePulseMode(void);
+		void savePulseMode(bool pulses);
 		void getState(uint8_t *state);
+		bool isPulseEnabled(void);
 
 	private:
 		UpTime *uptime;
 		void loadValues(void);
 		void setValue(uint8_t channel, uint16_t val);
-		void readModePulses(void);
+		void readPulseMode(void);
 
 };
 

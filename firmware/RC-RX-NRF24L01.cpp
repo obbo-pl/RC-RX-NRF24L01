@@ -251,7 +251,7 @@ int main(void)
 				throttle.check(servo_channels_value, 
 					       protocol.cabell.timer.last_good_packet, 
 					       testbit(protocol.cabell.state.protocol, CABELL_STATE_INITIAL_GOOD_PACKET),
-					       testbit(failsafe.state, FAILSAFE_STATE_FAILSAFE_MODE));
+					       testbit(failsafe.state, FAILSAFE_STATE_ACTIVE));
 #endif
 				servos.setValues(servo_channels_value);				
 				servos.enablePulses(enable_servo_pulses);
@@ -280,7 +280,7 @@ int main(void)
 					}
 					if (testbit(protocol.cabell.state.request, CABELL_STATE_REQUEST_FAILSAFE_NO_PULSES)) {
 						clrbit(protocol.cabell.state.request, CABELL_STATE_REQUEST_FAILSAFE_NO_PULSES);
-						failsafe.saveModePulses(false);
+						failsafe.savePulseMode(false);
 					}
 					if (testbit(protocol.cabell.state.request, CABELL_STATE_REQUEST_FAILSAFE_ERASE)) {
 						clrbit(protocol.cabell.state.request, CABELL_STATE_REQUEST_FAILSAFE_ERASE);
@@ -391,7 +391,7 @@ void main_ReadBatteryVoltage(uint8_t *voltage)
 
 void main_SetStatusLed(LED *led, uint8_t *protocol, uint8_t *failsafe)
 {
-	if (testbit(*failsafe, FAILSAFE_STATE_FAILSAFE_MODE)) {
+	if (testbit(*failsafe, FAILSAFE_STATE_ACTIVE)) {
 		led->setLed(true, false);
 	} else if (testbit(*protocol, CABELL_STATE_REBOOT_PENDING)) {
 		led->setTimers(20, 10);

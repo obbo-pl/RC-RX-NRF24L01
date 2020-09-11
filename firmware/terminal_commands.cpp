@@ -37,6 +37,7 @@ void command_RadioFailsafeValue(DCTERMINAL_t *terminal);
 void command_ThrottleDisarmValue(DCTERMINAL_t *terminal);
 void command_RadioBindModel(DCTERMINAL_t *terminal);
 void command_RadioBindAddress(DCTERMINAL_t *terminal);
+void command_RadioFailsafeMode(DCTERMINAL_t *terminal);
 #ifdef TERMINAL_CABELL_FULL_STATISTICS
 void command_RadioCountSequential(DCTERMINAL_t *terminal);
 void command_RadioCurrentChannel(DCTERMINAL_t *terminal);
@@ -52,7 +53,7 @@ void command_RadioNRF24L01PipeAddress(DCTERMINAL_t *terminal);
 void command_RadioNRF24L01PipePayload(DCTERMINAL_t *terminal);
 #endif
 
-#define TERMINAL_BASE_COMMANDS_COUNT		16
+#define TERMINAL_BASE_COMMANDS_COUNT		17
 #ifdef TERMINAL_CABELL_FULL_STATISTICS
 #define TERMINAL_STATISTICS_COMMANDS_COUNT	5
 #else
@@ -74,6 +75,7 @@ TERMINAL_COMMAND_t cabell_commands[TERMINAL_COMMANDS_COUNT] = {
 	{ .pattern = "@RBM", .callback = command_RadioBindModel,},
 	{ .pattern = "@REC", .callback = command_RadioErrorsClear,},
 	{ .pattern = "@RER", .callback = command_RadioErrorsStatus,},
+	{ .pattern = "@RFM", .callback = command_RadioFailsafeMode,},
 	{ .pattern = "@RFS", .callback = command_RadioFailsafeStatus,},
 	{ .pattern = "@RFV", .callback = command_RadioFailsafeValue,},
 	{ .pattern = "@RPC", .callback = command_RadioPacketsCount,},
@@ -126,10 +128,10 @@ const char EEMEM eeprom_terminal_message_012[] = "Servo failsafe value:\n\r";
 const char EEMEM eeprom_terminal_message_013[] = "Protocol state:  ";
 const char EEMEM eeprom_terminal_message_014[] = "Failsafe state:  ";
 const char EEMEM eeprom_terminal_message_015[] = "Throttle disarm value: ";
+const char EEMEM eeprom_terminal_message_016[] = "Saved model: ";
+const char EEMEM eeprom_terminal_message_017[] = "Rx pipe address: ";
+const char EEMEM eeprom_terminal_message_018[] = "Failsafe pulse enabled: ";
 #ifdef TERMINAL_CABELL_FULL_STATISTICS
-const char EEMEM eeprom_terminal_message_016[] = "Sequential:\n\r";
-const char EEMEM eeprom_terminal_message_017[] = "  Hit:  ";
-const char EEMEM eeprom_terminal_message_018[] = "  Miss: ";
 const char EEMEM eeprom_terminal_message_019[] = "Radio timers [0.1ms]:\n\r";
 const char EEMEM eeprom_terminal_message_020[] = "  Next channel switch: ";
 const char EEMEM eeprom_terminal_message_021[] = "  Receive last packet: ";
@@ -144,9 +146,8 @@ const char EEMEM eeprom_terminal_message_029[] = "  3.2-3.3: ";
 const char EEMEM eeprom_terminal_message_030[] = "  3.4-3.5: ";
 const char EEMEM eeprom_terminal_message_031[] = "  3.6-3.7: ";
 const char EEMEM eeprom_terminal_message_032[] = "  3.8-3.9: ";
-const char EEMEM eeprom_terminal_message_033[] = "  4.0-4.1: ";
 #endif
-const char EEMEM eeprom_terminal_message_034[] = "Servo value:\n\r";
+const char EEMEM eeprom_terminal_message_033[] = "Servo value:\n\r";
 
 
 
@@ -312,7 +313,7 @@ void command_RadioBindModel(DCTERMINAL_t *terminal)
 			terminal_SendBadArgument(terminal->output_buffer);
 		}
 	}
-	cbuffer_AppendString(terminal->output_buffer, "Saved model: ");
+	cbuffer_AppendEEString(terminal->output_buffer, eeprom_terminal_message_016);
 	char buffer [4];
 	itoa(receiver_protocol->cabell.current_model, buffer, 10);
 	cbuffer_AppendString(terminal->output_buffer, buffer);
@@ -347,7 +348,7 @@ void command_RadioBindAddress(DCTERMINAL_t *terminal)
 			terminal_SendBadArgument(terminal->output_buffer);
 		}
 	} else {
-		cbuffer_AppendString(terminal->output_buffer, "Rx pipe address: ");
+		cbuffer_AppendEEString(terminal->output_buffer, eeprom_terminal_message_017);
 		terminal_PrintBuf(terminal->output_buffer, reinterpret_cast<const uint8_t *>(&receiver_protocol->cabell.radio_pipe_id), 5, false);
 		terminal_SendNL(terminal->output_buffer);
 	}
@@ -379,9 +380,26 @@ void command_RadioSetFailsafe(DCTERMINAL_t *terminal)
 	terminal_SendOK(terminal->output_buffer);
 }
 
+void command_RadioFailsafeMode(DCTERMINAL_t *terminal)     // <------------------
+{
+	if (terminal->command_option[0] == TERMINAL_SPACE) {
+		int temp = atoi(terminal->command_option);
+		if (temp <= 1) {
+			receiver_failsafe->savePulseMode((bool)temp);
+		} else {
+			terminal_SendBadArgument(terminal->output_buffer);
+		}
+	}
+	cbuffer_AppendEEString(terminal->output_buffer, eeprom_terminal_message_018);
+	char buffer [4];
+	itoa(receiver_failsafe->isPulseEnabled(), buffer, 10);
+	cbuffer_AppendString(terminal->output_buffer, buffer);
+	terminal_SendNL(terminal->output_buffer, false);
+}
+
 void command_RadioServoValue(DCTERMINAL_t *terminal)
 {
-	cbuffer_AppendEEString(terminal->output_buffer, eeprom_terminal_message_034);
+	cbuffer_AppendEEString(terminal->output_buffer, eeprom_terminal_message_033);
 	for (uint8_t i = 0; i < (CABELL_MAX_CHANNELS / 2); i++) {
 		cbuffer_AppendString(terminal->output_buffer, "  CH");
 		terminal_PrintInt(terminal->output_buffer, i + 1);
@@ -423,13 +441,13 @@ void command_ThrottleDisarmValue(DCTERMINAL_t *terminal)
 #ifdef TERMINAL_CABELL_FULL_STATISTICS
 void command_RadioCountSequential(DCTERMINAL_t *terminal)
 {
-	cbuffer_AppendEEString(terminal->output_buffer, eeprom_terminal_message_016);
+	cbuffer_AppendString(terminal->output_buffer, "Sequential:\n\r");
 	char buffer[12];
-	cbuffer_AppendEEString(terminal->output_buffer, eeprom_terminal_message_017);
+	cbuffer_AppendString(terminal->output_buffer, "  Hit:  ");
 	ultoa(receiver_protocol->cabell.counter.sequential_hit, buffer, 10);
 	cbuffer_AppendString(terminal->output_buffer, buffer);
 	terminal_SendNL(terminal->output_buffer);
-	cbuffer_AppendEEString(terminal->output_buffer, eeprom_terminal_message_018);
+	cbuffer_AppendString(terminal->output_buffer, "  Miss: ");
 	ultoa(receiver_protocol->cabell.counter.sequential_miss, buffer, 10);
 	cbuffer_AppendString(terminal->output_buffer, buffer);
 	terminal_SendNL(terminal->output_buffer);
@@ -506,7 +524,7 @@ void command_RadioPacketInterval(DCTERMINAL_t *terminal)
 	ultoa(receiver_protocol->cabell.len_3900, buffer, 10);
 	cbuffer_AppendString(terminal->output_buffer, buffer);
 	terminal_SendNL(terminal->output_buffer);
-	cbuffer_AppendEEString(terminal->output_buffer, eeprom_terminal_message_033);
+	cbuffer_AppendString(terminal->output_buffer, "  4.0-4.1: ");
 	ultoa(receiver_protocol->cabell.len_4100, buffer, 10);
 	cbuffer_AppendString(terminal->output_buffer, buffer);
 	terminal_SendNL(terminal->output_buffer);
