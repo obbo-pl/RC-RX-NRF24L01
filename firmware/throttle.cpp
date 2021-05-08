@@ -16,30 +16,31 @@
 #include "terminal.h"
 
 
-#define THROTTLE_CHANNEL_NOT_CONFIGURED		(-1)
+#define THROTTLE_CHANNEL_NOT_CONFIGURED			(0xFF)
+#if THROTTLE_MAX_CHANNELS > THROTTLE_CHANNEL_NOT_CONFIGURED
+#error "THROTTLE_MAX_CHANNELS should be less or equal than THROTTLE_CHANNEL_NOT_CONFIGURED"  
+#endif
 
 uint16_t EEMEM eeprom_throttle_disarm_value = THROTTLE_DISARM_DEFAULT_VALUE;
 
 
 
-Throttle::Throttle()
+Throttle::Throttle(uint8_t channel, UpTime *uptime)
 {
+	if (channel < (uint8_t)THROTTLE_MAX_CHANNELS) {
+		this->throttle_channel = channel;
+	} else {
+		this->throttle_channel = THROTTLE_CHANNEL_NOT_CONFIGURED;
+	}
+	this->uptime = uptime;
 	this->armed = false;
-	this->throttle_channel = THROTTLE_CHANNEL_NOT_CONFIGURED;
 	this->throttle_disarm_value = eeprom_read_word(&eeprom_throttle_disarm_value);
 	this->arming_duration = 0;
 }
 
-void Throttle::init(uint8_t channel, uint16_t disarm_value, UpTime *uptime)
-{
-	this->uptime = uptime;
-	if (channel < (uint8_t)THROTTLE_MAX_CHANNELS) this->throttle_channel = channel;
-	this->setDisarmValue(disarm_value);
-}
-
 void Throttle::check(uint16_t *channels_value, uint32_t last_good_packet, bool initial_packet, bool failsafe)
 {
-	if (this->throttle_channel != THROTTLE_CHANNEL_NOT_CONFIGURED) {
+	if ((this->throttle_channel != THROTTLE_CHANNEL_NOT_CONFIGURED) && (this->throttle_disarm_value != 0)) {
 		if (((this->uptime->getTime() - last_good_packet) > (uint32_t)THROTTLE_DISARM_TIMEOUT) || !(initial_packet)) {
 			if (this->isArmed()) {
 				if (this->console) terminal_Print(this->console, "Disarming throttle\n\r", false);
@@ -75,9 +76,10 @@ void Throttle::saveDisarmValue(uint16_t disarm_value)
 
 void Throttle::setDisarmValue(uint16_t disarm_value)
 {
-	this->throttle_disarm_value = disarm_value;
-	if (this->throttle_disarm_value < THROTTLE_MIN_VALUE) this->throttle_disarm_value = THROTTLE_MIN_VALUE;
-	if (this->throttle_disarm_value > THROTTLE_MAX_VALUE) this->throttle_disarm_value = THROTTLE_MAX_VALUE;
+	if (disarm_value == 0) this->throttle_disarm_value = 0;
+	else if (disarm_value < THROTTLE_MIN_VALUE) this->throttle_disarm_value = THROTTLE_MIN_VALUE;
+	else if (disarm_value > THROTTLE_MAX_VALUE) this->throttle_disarm_value = THROTTLE_MAX_VALUE;
+	else this->throttle_disarm_value = disarm_value;
 }
 
 uint16_t Throttle::getDisarmValue(void)

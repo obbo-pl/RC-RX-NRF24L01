@@ -32,9 +32,8 @@
 class Throttle
 {
 	public:
-		Throttle();
+		Throttle(uint8_t channel, UpTime *uptime);
 
-		void init(uint8_t channel, uint16_t disarm_value, UpTime *uptime);
 		void check(uint16_t *channels_value, uint32_t last_good_packet, bool initial_packet, bool failsafe);
 		void saveDisarmValue(void);
 		void saveDisarmValue(uint16_t disarm_value);

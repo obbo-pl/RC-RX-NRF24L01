@@ -36,7 +36,7 @@
 
 
 #define VERSION_MAJOR				"1"
-#define VERSION_MINOR				"0"
+#define VERSION_MINOR				"1"
 #define DEVICE_INFO_SIZE			64
 const char DEVICE_INFO[DEVICE_INFO_SIZE]	PROGMEM = "RC-RX-NRF24L01 " VERSION_MAJOR "." VERSION_MINOR " (build: " __DATE__ " " __TIME__ ")\n\r";
 
@@ -49,7 +49,7 @@ const char DEVICE_INFO[DEVICE_INFO_SIZE]	PROGMEM = "RC-RX-NRF24L01 " VERSION_MAJ
 //#define MAIN_CHECK_SERVO_PORT 
 
 #define MAIN_THROTTLE_PROTECTION
-#define MAIN_CHANNEL_THROTTLE			THROTTLE
+#define MAIN_THROTTLE_CHANNEL			THROTTLE
 
 uint8_t EEMEM EEMEM_battery_divider = 40;
 
@@ -179,8 +179,7 @@ int main(void)
 	lpfilter_Fill(&filter_adc, 0xFF);
 	adc_Init(glue2(ADCONVERSION_MUX_ADC,CONFIG_VBAT_MUX_IN));
 	
-	Throttle throttle;
-	throttle.init(MAIN_CHANNEL_THROTTLE, 1500, &uptime);
+	Throttle throttle(MAIN_THROTTLE_CHANNEL, &uptime);
 	throttle.bindTerminal(&cbuffer);
 	Failsafe failsafe;
 	failsafe.init(&uptime);

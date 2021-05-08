@@ -425,7 +425,7 @@ void command_ThrottleDisarmValue(DCTERMINAL_t *terminal)
 {
 	if (terminal->command_option[0] == TERMINAL_SPACE) {
 		int temp = atoi(terminal->command_option);
-		if ((temp >= THROTTLE_MIN_VALUE) && (temp <= THROTTLE_MAX_VALUE)) {
+		if (((temp >= THROTTLE_MIN_VALUE) && (temp <= THROTTLE_MAX_VALUE)) || (temp == 0)) {
 			receiver_throttle->saveDisarmValue(temp);
 		} else {
 			terminal_SendBadArgument(terminal->output_buffer);
