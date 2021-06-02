@@ -36,16 +36,13 @@
 
 
 #define VERSION_MAJOR				"1"
-#define VERSION_MINOR				"1"
+#define VERSION_MINOR				"2"
 #define DEVICE_INFO_SIZE			64
 const char DEVICE_INFO[DEVICE_INFO_SIZE]	PROGMEM = "RC-RX-NRF24L01 " VERSION_MAJOR "." VERSION_MINOR " (build: " __DATE__ " " __TIME__ ")\n\r";
 
 #define MAIN_STATUS_UPDATE_DELAY		1000		// update every 0.1sec
 #define PACKET_LIFETIME				28
 
-// check service mode
-#define MAIN_TWI_SDA				C,4
-#define MAIN_TWI_SCL				C,5
 //#define MAIN_CHECK_SERVO_PORT 
 
 #define MAIN_THROTTLE_PROTECTION
@@ -94,7 +91,6 @@ enum MAIN_PHASE {
 
 int main(void)
 {
- 	LED led_status(PORT_REG_O(CONFIG_STATUS_LED));
 #ifdef CONFIG_CH1
 	Servo servo_ch1(PORT_REG_IO(CONFIG_CH1));
 	servos.bind(&servo_ch1, 1);
@@ -127,42 +123,31 @@ int main(void)
 	Servo servo_ch8(PORT_REG_IO(CONFIG_CH8));
 	servos.bind(&servo_ch8, 8);
 #endif
-	bool service_mode = false;
-	
-	SET_PIN_AS_IN(MAIN_TWI_SDA);
-	SET_PIN_PULLUP(MAIN_TWI_SDA);
-	_delay_ms(50);
-	if (!(READ_PIN(MAIN_TWI_SDA))) service_mode = true;
-	SET_PIN_LEVEL_LOW(MAIN_TWI_SDA);
-	
-	SET_PIN_AS_IN(MAIN_TWI_SCL);
-	SET_PIN_PULLUP(MAIN_TWI_SCL);
-	_delay_ms(50);
-	if (!(READ_PIN(MAIN_TWI_SCL))) service_mode = true;
-	SET_PIN_LEVEL_LOW(MAIN_TWI_SDA);
-
-#ifdef MAIN_CHECK_SERVO_PORT
-	uint8_t servo_port_check = servos.checkPort();
-	if (servo_port_check != 0xFF) service_mode = true;
-#endif
-	if (service_mode) {
-		servos.unbind(2);
-		servos.unbind(3);
-		servos.unbind(4);
-		servos.unbind(7);
-		servos.unbind(8);
-#ifdef MAIN_CHECK_SERVO_PORT
-		for (uint8_t i = 0; i < SERVO_CHAIN_MAX_LENGTH; i++) {
-			if (!(testbit(servo_port_check, i))) servos.unbind(i + 1);
-		}
-#endif
-		SET_PIN_AS_IN(CONFIG_BIND_BUTTON);
-		SET_PIN_PULLUP(CONFIG_BIND_BUTTON);		
-		led_status.init();
-		led_status.setLed(true, false);
-	}
 	servos.attach();
 	
+	SET_PIN_AS_IN(CONFIG_BIND_BUTTON);
+	SET_PIN_PULLUP(CONFIG_BIND_BUTTON);
+	bool service_mode = true;
+	for (uint8_t i = 0; i < 100; i++) {
+		_delay_ms(1);
+ 		if (READ_PIN(CONFIG_BIND_BUTTON)) {
+			service_mode = false;
+			break;
+		}
+	}
+ 	LED led_status(PORT_REG_O(CONFIG_STATUS_LED));
+	if (service_mode) {
+		led_status.init();
+		for (uint8_t i = 0; i < 21; i++) {
+			led_status.setLed(true, false);
+			led_status.update();
+			_delay_ms(100);
+			led_status.setLed(false, false);
+			led_status.update();
+			_delay_ms(100);
+		}
+	}
+			
 	device_info = DEVICE_INFO;
 	usart_Init();
 	cbuffer_Init(&cbuffer);
@@ -255,7 +240,7 @@ int main(void)
 				servos.setValues(servo_channels_value);				
 				servos.enablePulses(enable_servo_pulses);
 				if (service_mode) {
-					if (!READ_PIN(CONFIG_BIND_BUTTON)) failsafe.saveValues(servo_channels_value);					
+					if (!READ_PIN(CONFIG_BIND_BUTTON)) failsafe.saveValues(servo_channels_value);			
 				}
 				main_phase++;
 				break;

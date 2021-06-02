@@ -380,7 +380,7 @@ void command_RadioSetFailsafe(DCTERMINAL_t *terminal)
 	terminal_SendOK(terminal->output_buffer);
 }
 
-void command_RadioFailsafeMode(DCTERMINAL_t *terminal)     // <------------------
+void command_RadioFailsafeMode(DCTERMINAL_t *terminal)
 {
 	if (terminal->command_option[0] == TERMINAL_SPACE) {
 		int temp = atoi(terminal->command_option);

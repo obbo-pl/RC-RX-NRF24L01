@@ -45,11 +45,16 @@
 // Battery voltage measure
 #define CONFIG_VBAT_MUX_IN		7
 
+// check service mode
+#define CONFIG_TWI_SDA			C,4
+#define CONFIG_TWI_SCL			C,5
+
 // Bind button
-#define CONFIG_BIND_BUTTON		C,3
+#define CONFIG_BIND_BUTTON		CONFIG_TWI_SDA
 
 // LED
-#define CONFIG_STATUS_LED		C,2
+#define CONFIG_STATUS_LED		CONFIG_TWI_SCL
+
 
 // Terminal command set
 #define TERMINAL_CABELL_FULL_STATISTICS
