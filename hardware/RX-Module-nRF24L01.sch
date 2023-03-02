@@ -1,5 +1,4 @@
 EESchema Schematic File Version 4
-LIBS:RX-Module-nRF24L01-cache
 EELAYER 30 0
 EELAYER END
 $Descr A4 11693 8268
@@ -20,7 +19,7 @@ U 1 1 5D56B0CB
 P 9700 4650
 F 0 "U4" H 10080 4696 50  0000 L CNN
 F 1 "NRF24L01_Breakout" H 10080 4605 50  0000 L CNN
-F 2 "obbo_footprints:nRF24L01-GT24_Breakuot_PinHeader_2x04_Solder" H 9850 5250 50  0001 L CIN
+F 2 "obbo_footprints:nRF24L01-GT24_Breakout_PinHeader_2x04" H 9850 5250 50  0001 L CIN
 F 3 "http://www.nordicsemi.com/eng/content/download/2730/34105/file/nRF24L01_Product_Specification_v2_0.pdf" H 9700 4550 50  0001 C CNN
 	1    9700 4650
 	1    0    0    -1  
@@ -56,17 +55,6 @@ F 1 "+3V3" H 10215 1223 50  0000 C CNN
 F 2 "" H 10200 1050 50  0001 C CNN
 F 3 "" H 10200 1050 50  0001 C CNN
 	1    10200 1050
-	1    0    0    -1  
-$EndComp
-$Comp
-L MCU_Microchip_ATmega:ATmega328-AU U3
-U 1 1 5DA68ED8
-P 5600 4100
-F 0 "U3" H 5800 2600 50  0000 C CNN
-F 1 "ATmega328-AU" H 6050 2500 50  0000 C CNN
-F 2 "Package_QFP:TQFP-32_7x7mm_P0.8mm" H 5600 4100 50  0001 C CIN
-F 3 "http://ww1.microchip.com/downloads/en/DeviceDoc/ATmega328_P%20AVR%20MCU%20with%20picoPower%20Technology%20Data%20Sheet%2040001984A.pdf" H 5600 4100 50  0001 C CNN
-	1    5600 4100
 	1    0    0    -1  
 $EndComp
 $Comp
@@ -1133,4 +1121,51 @@ Text Notes 4100 4550 0    50   ~ 0
 Vref 1.1V
 Text Notes 4100 4100 0    50   ~ 0
 4.8V - 6.2V
+$Comp
+L MCU_Microchip_ATmega:ATmega328-AU U3
+U 1 1 6401756F
+P 5600 4100
+F 0 "U3" H 6000 2600 50  0000 C CNN
+F 1 "ATmega328-AU" H 6050 2500 50  0000 C CNN
+F 2 "Package_QFP:TQFP-32_7x7mm_P0.8mm" H 5600 4100 50  0001 C CIN
+F 3 "http://ww1.microchip.com/downloads/en/DeviceDoc/ATmega328_P%20AVR%20MCU%20with%20picoPower%20Technology%20Data%20Sheet%2040001984A.pdf" H 5600 4100 50  0001 C CNN
+	1    5600 4100
+	1    0    0    -1  
+$EndComp
+NoConn ~ 5000 3100
+NoConn ~ 6200 3000
+NoConn ~ 6200 4800
+NoConn ~ 6200 4900
+NoConn ~ 9200 4950
+NoConn ~ 10000 1500
+$Comp
+L power:PWR_FLAG #FLG0101
+U 1 1 6405B28D
+P 1250 4750
+F 0 "#FLG0101" H 1250 4825 50  0001 C CNN
+F 1 "PWR_FLAG" H 1250 4923 50  0000 C CNN
+F 2 "" H 1250 4750 50  0001 C CNN
+F 3 "~" H 1250 4750 50  0001 C CNN
+	1    1250 4750
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	1250 4750 1250 4800
+Wire Wire Line
+	1250 4800 1700 4800
+$Comp
+L power:PWR_FLAG #FLG0102
+U 1 1 64062DD8
+P 1250 4150
+F 0 "#FLG0102" H 1250 4225 50  0001 C CNN
+F 1 "PWR_FLAG" H 1250 4323 50  0000 C CNN
+F 2 "" H 1250 4150 50  0001 C CNN
+F 3 "~" H 1250 4150 50  0001 C CNN
+	1    1250 4150
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	1250 4150 1250 4250
+Wire Wire Line
+	1250 4250 1550 4250
 $EndSCHEMATC
